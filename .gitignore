@@ -104,4 +104,4 @@ venv.bak/
 .mypy_cache/
 
 # googles
-client_id.json
+client_secret.json
