@@ -8,10 +8,9 @@ import os
 import re
 import json
 
-import google.oauth2.credentials as credentials
+import google.oauth2.credentials
 import google_auth_oauthlib.flow
 from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
 from google_auth_oauthlib.flow import InstalledAppFlow
 
 # The CLIENT_SECRETS_FILE variable specifies the name of a file that contains
@@ -32,27 +31,36 @@ def get_authenticated_service():
     else:
         flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
         credentials = flow.run_console()
-        creds = {
-                    "token": credentials.id_token
-                }
-
-        creds_file = open(CREDS_FILE, "w")
-        json.dump(creds, creds_file)
-
     return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
-
-# subscription to the specified channel.
-def get_subscriptions(youtube):
-    get_subscription_response = youtube.subscriptions().list(part="snippet", mine=True).execute()
-
-    return get_subscription_response["items"]
 
 if __name__ == "__main__":
     youtube = get_authenticated_service()
 
-    try:
-        subscriptions = get_subscriptions(youtube)
-        for subscription in subscriptions:
-            print("A subscription to {} was deleted.".format(subscription))
-    except:
-        print("An error {} occurred: {}".format(e.resp.status, e.content))
+    subscriptions = youtube.subscriptions()
+    request = subscriptions.list(part="snippet", mine=True)
+    while request is not None:
+        subscriptions_list = request.execute()
+        for subscription in subscriptions_list["items"]:
+            sid = subscription["id"]
+
+            snippet = subscription["snippet"]
+            title = snippet["title"]
+            description = snippet["description"]
+            channel_id = snippet["channelId"]
+
+            print("title: {}".format(title))
+            print("description: {}".format(description))
+            print("channel url: {}".format(channel_id))
+
+            yn = input("Do you want to delete this subscription? ")
+            r = re.compile('[Y|y][E|e][S|s]')
+            if r.match(yn):
+                subscriptions.delete(sid)
+
+                print("subscription to {} was deleted.".format(title))
+            else:
+                print("skipping {}".format(title))
+
+            print("=" * 44)
+
+        request = subscriptions.list_next(request, subscriptions_list)
