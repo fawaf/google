@@ -37,7 +37,7 @@ if __name__ == "__main__":
     youtube = get_authenticated_service()
 
     subscriptions = youtube.subscriptions()
-    request = subscriptions.list(part="snippet", mine=True)
+    request = subscriptions.list(part="snippet", mine=True, order="alphabetical")
     while request is not None:
         subscriptions_list = request.execute()
         for subscription in subscriptions_list["items"]:
@@ -46,21 +46,26 @@ if __name__ == "__main__":
             snippet = subscription["snippet"]
             title = snippet["title"]
             description = snippet["description"]
-            channel_id = snippet["channelId"]
+            channel_id = snippet["resourceId"]["channelId"]
 
             print("title: {}".format(title))
+            print()
             print("description: {}".format(description))
-            print("channel url: {}".format(channel_id))
+            print()
+            print("channel url: https://www.youtube.com/channel/{}".format(channel_id))
+            print()
+            print()
 
             yn = input("Do you want to delete this subscription? ")
-            r = re.compile('[Y|y][E|e][S|s]')
+            print()
+            r = re.compile('[Y|y]([E|e][S|s])?')
             if r.match(yn):
-                subscriptions.delete(sid)
+                subscriptions.delete(id=sid).execute()
 
                 print("subscription to {} was deleted.".format(title))
             else:
                 print("skipping {}".format(title))
 
-            print("=" * 44)
+            print("=" * 65)
 
         request = subscriptions.list_next(request, subscriptions_list)
