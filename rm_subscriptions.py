@@ -8,8 +8,6 @@ import os
 import re
 import json
 
-import google.oauth2.credentials
-import google_auth_oauthlib.flow
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 
@@ -27,10 +25,11 @@ API_VERSION = "v3"
 def get_authenticated_service():
     if os.path.isfile(CREDS_FILE):
         creds = json.loads(open(CREDS_FILE))
-        credentials = creds.Credentails(creds["token"])
+        credentials = creds.Credentials(creds["token"])
     else:
         flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
         credentials = flow.run_console()
+
     return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
 
 if __name__ == "__main__":
