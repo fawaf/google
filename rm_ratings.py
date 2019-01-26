@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-# This code sample shows how to get a channel subscription.
-# python get_subscription.py --channel-id=UC_x5XG1OV2P6uZZ5FSM9Ttw
+# This code sample shows how to get a channel video.
+# python get_video.py --channel-id=UC_x5XG1OV2P6uZZ5FSM9Ttw
 
 import os
 import re
@@ -9,6 +9,7 @@ import json
 import httplib2
 
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from oauth2client import tools
 from oauth2client.file import Storage
 from oauth2client.client import AccessTokenRefreshError
@@ -46,36 +47,37 @@ if __name__ == "__main__":
     http = credentials.authorize(http)
 
     youtube = build(API_SERVICE_NAME, API_VERSION, http=http)
-    subscriptions = youtube.subscriptions()
-    request = subscriptions.list(part="snippet", mine=True, order="alphabetical")
+    videos = youtube.videos()
+    request = videos.list(part="snippet", myRating="like")
     while request is not None:
-        subscriptions_list = request.execute()
-        for subscription in subscriptions_list["items"]:
-            sid = subscription["id"]
+        videos_list = request.execute()
+        for video in videos_list["items"]:
+            vid = video["id"]
 
-            snippet = subscription["snippet"]
+            snippet = video["snippet"]
             title = snippet["title"]
             description = snippet["description"]
-            channel_id = snippet["resourceId"]["channelId"]
+            channel_id = snippet["channelId"]
 
             print("title: {}".format(title))
             divider(char="-")
             print("description: {}".format(description))
             divider(char="-")
             print("channel url: https://www.youtube.com/channel/{}/videos".format(channel_id))
+            divider(char="-")
+            print("video url: https://www.youtube.com/watch?v={}".format(vid))
             print()
             print()
 
-            yn = input("Do you want to delete this subscription? ")
-            print()
-            r = re.compile('[Y|y]([E|e][S|s])?')
-            if r.match(yn):
-                subscriptions.delete(id=sid).execute()
-
-                print("subscription to {} was deleted.".format(title))
-            else:
-                print("skipping {}".format(title))
+            print("removing rating... ", end="")
+            try:
+                videos.rate(id=vid, rating="none").execute()
+            except HttpError as e:
+                print("error: {}".format(e))
+            print("done.")
 
             divider()
 
-        request = subscriptions.list_next(request, subscriptions_list)
+        request = videos.list_next(request, videos_list)
+    else:
+        print("no videos to un-rate found")
