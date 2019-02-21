@@ -3,7 +3,6 @@
 # This code sample shows how to get a channel subscription.
 # python get_subscription.py --channel-id=UC_x5XG1OV2P6uZZ5FSM9Ttw
 
-import time
 import os
 import re
 import json
@@ -70,7 +69,6 @@ if __name__ == "__main__":
 
             print("deleting subscription... ", end="")
             try:
-                time.sleep(1)
                 subscriptions.delete(id=sid).execute()
             except HttpError as e:
                 print("error: {}".format(e))
