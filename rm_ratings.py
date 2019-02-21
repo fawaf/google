@@ -60,12 +60,18 @@ if __name__ == "__main__":
             channel_id = snippet["channelId"]
 
             print("title: {}".format(title))
+
             divider(char="-")
+
             print("description: {}".format(description))
+
             divider(char="-")
+
             print("channel url: https://www.youtube.com/channel/{}/videos".format(channel_id))
             divider(char="-")
+
             print("video url: https://www.youtube.com/watch?v={}".format(vid))
+
             print()
             print()
 

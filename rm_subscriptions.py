@@ -3,12 +3,14 @@
 # This code sample shows how to get a channel subscription.
 # python get_subscription.py --channel-id=UC_x5XG1OV2P6uZZ5FSM9Ttw
 
+import time
 import os
 import re
 import json
 import httplib2
 
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from oauth2client import tools
 from oauth2client.file import Storage
 from oauth2client.client import AccessTokenRefreshError
@@ -66,15 +68,13 @@ if __name__ == "__main__":
             print()
             print()
 
-            yn = input("Do you want to delete this subscription? ")
-            print()
-            r = re.compile('[Y|y]([E|e][S|s])?')
-            if r.match(yn):
+            print("deleting subscription... ", end="")
+            try:
+                time.sleep(1)
                 subscriptions.delete(id=sid).execute()
-
-                print("subscription to {} was deleted.".format(title))
-            else:
-                print("skipping {}".format(title))
+            except HttpError as e:
+                print("error: {}".format(e))
+            print("done.")
 
             divider()
 
