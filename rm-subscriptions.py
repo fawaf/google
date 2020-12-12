@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-# This code sample shows how to get a channel video.
-# python get_video.py --channel-id=UC_x5XG1OV2P6uZZ5FSM9Ttw
+# This code sample shows how to get a channel subscription.
+# python get_subscription.py --channel-id=UC_x5XG1OV2P6uZZ5FSM9Ttw
 
 import os
 import re
@@ -32,8 +32,10 @@ client_secret = secrets["client_secret"]
 
 flow = OAuth2WebServerFlow(client_id, client_secret, SCOPE)
 
+
 def divider(char="=", times=65):
     print(char * times)
+
 
 if __name__ == "__main__":
     storage = Storage(CREDS_FILE)
@@ -41,49 +43,47 @@ if __name__ == "__main__":
     credentials = storage.get()
 
     if credentials is None or credentials.invalid:
-        credentials = tools.run_flow(flow, storage, tools.argparser.parse_args())
+        credentials = tools.run_flow(
+            flow, storage, tools.argparser.parse_args()
+        )
 
     http = httplib2.Http()
     http = credentials.authorize(http)
 
     youtube = build(API_SERVICE_NAME, API_VERSION, http=http)
-    videos = youtube.videos()
-    request = videos.list(part="snippet", myRating="like")
+    subscriptions = youtube.subscriptions()
+    request = subscriptions.list(
+        part="snippet", mine=True, order="alphabetical"
+    )
     while request is not None:
-        videos_list = request.execute()
-        for video in videos_list["items"]:
-            vid = video["id"]
+        subscriptions_list = request.execute()
+        for subscription in subscriptions_list["items"]:
+            sid = subscription["id"]
 
-            snippet = video["snippet"]
+            snippet = subscription["snippet"]
             title = snippet["title"]
             description = snippet["description"]
-            channel_id = snippet["channelId"]
+            channel_id = snippet["resourceId"]["channelId"]
 
             print("title: {}".format(title))
-
             divider(char="-")
-
             print("description: {}".format(description))
-
             divider(char="-")
-
-            print("channel url: https://www.youtube.com/channel/{}/videos".format(channel_id))
-            divider(char="-")
-
-            print("video url: https://www.youtube.com/watch?v={}".format(vid))
-
+            print(
+                "channel url: https://www.youtube.com/channel/{}/videos".format(
+                    channel_id
+                )
+            )
             print()
             print()
 
-            print("removing rating... ", end="")
+            print("deleting subscription... ", end="")
             try:
-                videos.rate(id=vid, rating="none").execute()
+                subscriptions.delete(id=sid).execute()
             except HttpError as e:
                 print("error: {}".format(e))
             print("done.")
 
             divider()
 
-        request = videos.list_next(request, videos_list)
-    else:
-        print("no videos to un-rate found")
+        request = subscriptions.list_next(request, subscriptions_list)
