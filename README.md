@@ -6,4 +6,6 @@ terrible code for interfacing with youtube
 
 ## mass removing ratings
 
-## moving subscriptions to another account
+## copy subscriptions to another account
+
+## list subscriptions
