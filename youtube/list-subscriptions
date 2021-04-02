@@ -8,8 +8,9 @@ import sys
 import googleapiclient.discovery
 import googleapiclient.errors
 import google_auth_oauthlib.flow
-import utils
 
+sys.path.append("..")
+import utils
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
@@ -18,7 +19,7 @@ if __name__ == "__main__":
         name = "test"
 
     credentials = utils.load_credentials(
-        client_secrets_filename="{}.json".format(name), name=name
+        client_secrets_filename=f"../{name}.json", name=name
     )
 
     youtube = googleapiclient.discovery.build(

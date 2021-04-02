@@ -12,7 +12,7 @@ import googleapiclient.errors
 import google_auth_oauthlib.flow
 import google.auth
 
-import utils
+from .. import utils
 
 
 parser = argparse.ArgumentParser()

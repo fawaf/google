@@ -1,0 +1,84 @@
+#!/usr/bin/env python
+
+# This code sample shows how to get a channel subscription.
+# python get_subscription.py --channel-id=UC_x5XG1OV2P6uZZ5FSM9Ttw
+
+import sys
+import argparse
+
+import googleapiclient.discovery
+import googleapiclient.errors
+import google_auth_oauthlib.flow
+
+sys.path.append("..")
+import utils
+import waflibs
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    waflibs.arg_parse.enable_verbose_logging(parser)
+    waflibs.arg_parse.enable_dry_run(parser)
+    parser.add_argument("-f", "--file-name", help="file name", default="test")
+    parser.add_argument("-e", "--email", help="email")
+    parser.add_argument("-n", "--alias", "--name", help="alias name")
+    parser.add_argument(
+        "-p", "--project", "--project-name", help="project name"
+    )
+    args = parser.parse_args()
+
+    logger = waflibs.log.create_logger(args)
+
+    file_name = args.file_name
+    email = args.email
+    alias = args.alias
+    project = args.project
+
+    workspace = utils.get_client(
+        project, "workspace", client_secrets_filename=f"../{file_name}.json"
+    )
+
+    try:
+        user = (
+            workspace.users()
+            .aliases()
+            .delete(userKey=email, alias=alias)
+            .execute()
+        )
+        logger.debug(f"deleted user alias {alias}")
+    except googleapiclient.errors.HttpError as e:
+        logger.debug(f"error: {e}")
+        logger.debug(f"user alias {alias} not found. ignoring...")
+
+    try:
+        body = {
+            "kind": "group",
+            "name": alias.split("@")[0],
+            "email": alias,
+        }
+        logger.debug(f"body to send: {body}")
+        group = workspace.groups().insert(body=body).execute()
+        logger.debug(f"created group: {group}")
+    except googleapiclient.errors.HttpError as e:
+        logger.debug(f"error: {e}")
+        logger.debug(f"group {alias} failed to create")
+
+    try:
+        body = {
+            "kind": "admin",
+            "email": email,
+            "role": "OWNER",
+        }
+        logger.debug(f"body to send: {body}")
+        member = workspace.members().insert(groupKey=alias, body=body).execute()
+        logger.debug(f"group member update: {member}")
+    except googleapiclient.errors.HttpError as e:
+        logger.debug(f"error: {e}")
+        logger.debug("removing role from body and retrying")
+
+        body = {
+            "kind": "admin",
+            "email": email,
+        }
+        logger.debug(f"body to send: {body}")
+        member = workspace.members().insert(groupKey=alias, body=body).execute()
+        logger.debug(f"group member update: {member}")

@@ -18,19 +18,35 @@ CLIENT_SECRETS_FILE = "client_secret.json"
 CREDS_FILE = "creds.json"
 
 # This OAuth 2.0 access scope allows for full read/write access to the
-# authenticated user"s account.
-SCOPES = ["https://www.googleapis.com/auth/youtube"]
-API_SERVICE_NAME = "youtube"
-API_VERSION = "v3"
+# authenticated user's account.
+APIS = {
+        "youtube": {
+            "scopes": [
+                "https://www.googleapis.com/auth/youtube"
+                ],
+            "service_name": "youtube",
+            "version": "v3",
+        },
+        "workspace": {
+            "scopes": [
+                "https://www.googleapis.com/auth/admin.directory.group.member",
+                "https://www.googleapis.com/auth/admin.directory.group",
+                "https://www.googleapis.com/auth/admin.directory.user",
+                "https://www.googleapis.com/auth/admin.directory.user.alias",
+                ],
+            "service_name": "admin",
+            "version":"directory_v1",
+            }
+    }
 
 
 def divider(char="=", times=65):
     print(char * times)
 
 
-def get_credentials(client_secrets_file):
+def get_credentials(api_name, client_secrets_file):
     flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(
-        client_secrets_file, SCOPES
+        client_secrets_file, APIS[api_name]["scopes"]
     )
     credentials = flow.run_local_server()
 
@@ -55,20 +71,22 @@ def update_creds_file(creds_filename, name, credentials):
     f.close()
 
 
-def get_and_update_credentials(client_secrets_filename, creds_filename, name):
-    credentials = get_credentials(client_secrets_file=client_secrets_filename)
+def get_and_update_credentials(client_secrets_filename, creds_filename, name, api_name):
+    credentials = get_credentials(api_name, client_secrets_file=client_secrets_filename)
     update_creds_file(creds_filename, name, credentials)
 
     return credentials
 
 
 def load_credentials(
+        api_name,
     creds_filename=CREDS_FILE,
     client_secrets_filename=CLIENT_SECRETS_FILE,
     name="default",
 ):
-    if os.path.exists(creds_filename):
-        creds_file = open(creds_filename, "r")
+    creds_path = f"{os.path.dirname(os.path.realpath(__file__))}/{creds_filename}"
+    if os.path.exists(creds_path):
+        creds_file = open(creds_path, "r")
         full_creds_dict = {}
 
         try:
@@ -83,21 +101,28 @@ def load_credentials(
                     token_uri=creds_dict["token_uri"],
                     client_id=creds_dict["client_id"],
                     client_secret=creds_dict["client_secret"],
-                    scopes=SCOPES,
+                    scopes=APIS[api_name]["scopes"],
                 )
             else:
                 credentials = get_and_update_credentials(
-                    client_secrets_filename, creds_filename, name
+                    client_secrets_filename, creds_path, name, api_name
                 )
         except json.decoder.JSONDecodeError as e:
             print(e)
 
             credentials = get_and_update_credentials(
-                client_secrets_filename, creds_filename, name
+                client_secrets_filename, creds_path, name, api_name
             )
     else:
         credentials = get_and_update_credentials(
-            client_secrets_filename, creds_filename, name
+            client_secrets_filename, creds_path, name, api_name
         )
 
     return credentials
+
+
+def get_client(name, api_name, client_secrets_filename=CLIENT_SECRETS_FILE):
+    creds = load_credentials(api_name, client_secrets_filename=client_secrets_filename, name=name)
+
+    return googleapiclient.discovery.build(APIS[api_name]["service_name"],
+            APIS[api_name]["version"], credentials=creds)
