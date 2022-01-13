@@ -40,10 +40,6 @@ APIS = {
     }
 
 
-def divider(char="=", times=65):
-    print(char * times)
-
-
 def get_credentials(api_name, client_secrets_file):
     flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(
         client_secrets_file, APIS[api_name]["scopes"]
