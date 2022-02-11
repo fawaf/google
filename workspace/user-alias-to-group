@@ -18,8 +18,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     waflibs.arg_parse.enable_verbose_logging(parser)
     waflibs.arg_parse.enable_dry_run(parser)
-    parser.add_argument("-f", "--file-name", help="file name", default="test")
-    parser.add_argument("-e", "--email", help="email")
+    parser.add_argument("-f", "--file-name", help="creds file name", default="test")
+    parser.add_argument("-e", "--email", help="email address")
     parser.add_argument("-n", "--alias", "--name", help="alias name")
     parser.add_argument(
         "-p", "--project", "--project-name", help="project name"

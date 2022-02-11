@@ -1,0 +1,156 @@
+#!/usr/bin/env python
+
+# This code sample shows how to get a channel subscription.
+# python get_subscription.py --channel-id=UC_x5XG1OV2P6uZZ5FSM9Ttw
+
+import argparse
+import sys
+import time
+
+import googleapiclient.errors
+import prettytable
+
+sys.path.append("..")
+import utils
+import waflibs
+import workspace_utils
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    waflibs.arg_parse.enable_verbose_logging(parser)
+    waflibs.arg_parse.enable_dry_run(parser)
+    waflibs.arg_parse.enable_config(parser, filename="workspace.yaml")
+    parser.add_argument("-o", "--domain", help="domain name")
+    parser.add_argument("-f", "--from-project", help="from project")
+    parser.add_argument("-t", "--to-project", help="to project")
+    parser.add_argument(
+        "-l",
+        "--list-domains",
+        "--list",
+        action="store_true",
+        help="list domains",
+    )
+    parser.add_argument("-a", "--domain-alias", help="domain alias")
+    parser.add_argument("-i", "--list-domain-aliases", "--list-domain-alias", help="list domain alias")
+    parser.add_argument("-e", "--verify", "--verify-site", "--verify-domain", action="store_true", help="verify site/domain")
+    parser.add_argument("-p", "--project", help="project to use")
+    args = parser.parse_args()
+
+    logger = waflibs.log.create_logger(args)
+
+    logger.debug(f"args: {args}")
+
+    config = waflibs.config.parse_yaml_file(args.config)
+    logger.debug(f"config: {config}")
+
+    domain = args.domain
+    list_domains = args.list_domains
+    from_project = args.from_project
+    to_project = args.to_project
+    domain_alias = args.domain_alias
+    list_domain_aliases = args.list_domain_aliases
+    verify = args.verify
+    project = args.project
+
+    if (domain_alias or domain) and not verify:
+        from_id = config[from_project]["id"]
+        logger.debug(f"from project is {from_project} with id {from_id}")
+        to_id = config[to_project]["id"]
+        logger.debug(f"to project is {to_project} with id {to_id}")
+
+        from_workspace = utils.get_client(
+            from_project,
+            "workspace",
+            client_secrets_filename=f"../{from_project}.json",
+        )
+        to_workspace = utils.get_client(
+            to_project,
+            "workspace",
+            client_secrets_filename=f"../{to_project}.json",
+        )
+    else:
+        client = utils.get_client(project, "site_verification",
+            client_secrets_filename=f"../{project}.json",)
+
+    try:
+        if domain and not verify:
+            fw_domains = from_workspace.domains()
+            tw_domains = to_workspace.domains()
+        if domain_alias and not verify:
+            fw_da = from_workspace.domainAliases()
+            tw_da = to_workspace.domainAliases()
+
+        if list_domains or list_domain_aliases:
+            from_domains = fw_domains.list(customer=from_id).execute()
+            logger.debug(f"from domains: {from_domains}")
+            to_domains = tw_domains.list(customer=to_id).execute()
+            logger.debug(f"to domains: {to_domains}")
+
+            table = prettytable.PrettyTable()
+            table.field_names = [
+                "domain",
+                "domain alias",
+                "creation time",
+                "verified",
+            ]
+            for domain in from_domains["domains"] + to_domains["domains"]:
+                for domain_alias in domain["domainAliases"]:
+                    table.add_row(
+                        [
+                            domain["domainName"],
+                            domain_alias["domainAliasName"],
+                            domain_alias["creationTime"],
+                            domain_alias["verified"],
+                        ]
+                    )
+
+            print(table)
+        elif domain_alias and not verify:
+            print(f"deleting domain alias {domain_alias} from {from_project}... ", end="")
+            fw_da.delete(customer=from_id, domainAliasName=domain_alias).execute()
+            print("done")
+
+            time.sleep(3)
+
+            parent_domain = config[to_project]["domain"]
+            body= {
+                        "kind": "admin#directory#domainAlias",
+                        "domainAliasName": domain_alias,
+                        "parentDomainName": parent_domain,
+                    }
+            logger.debug(f"body: {body}")
+
+            print(tw_da.insert(customer=to_id, body=body).execute())
+
+            workspace_utils.verify_site(domain_alias, client)
+        elif domain:
+            print(f"deleting domain {domain} from {from_project}... ", end="")
+            fw_domains.delete(
+                customer=from_id, domainName=domain
+            ).execute()
+            print("done")
+
+            parent_domain = config[to_project]["domain"]
+            body = {
+                "kind": "domain",
+                "domainName": parent_domain,
+                "domainAliases": [
+                    {
+                        "kind": "admin#directory#domainAlias",
+                        "domainAliasName": domain,
+                        "parentDomainName": parent_domain,
+                    }
+                ],
+            }
+            logger.debug(f"body: {body}")
+
+            print(tw_domains.insert(customer=to_id, body=body).execute())
+        elif verify:
+            if domain:
+                workspace_utils.verify_site(domain, client)
+            if domain_alias:
+                workspace_utils.verify_site(domain_alias, client)
+        else:
+            raise Exception("NO BAD!")
+    except googleapiclient.errors.HttpError as e:
+        print(e)
