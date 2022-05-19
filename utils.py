@@ -20,35 +20,35 @@ CREDS_FILE = "creds.json"
 # This OAuth 2.0 access scope allows for full read/write access to the
 # authenticated user's account.
 APIS = {
-    "youtube": {
-        "scopes": ["https://www.googleapis.com/auth/youtube"],
-        "service_name": "youtube",
-        "version": "v3",
-    },
-    "workspace": {
-        "scopes": [
-            "https://www.googleapis.com/auth/admin.directory.domain",
-            "https://www.googleapis.com/auth/admin.directory.group.member",
-            "https://www.googleapis.com/auth/admin.directory.group",
-            "https://www.googleapis.com/auth/admin.directory.user",
-            "https://www.googleapis.com/auth/admin.directory.user.alias",
-        ],
-        "service_name": "admin",
-        "version": "directory_v1",
-    },
-    "site_verification": {
-        "scopes": [
-            "https://www.googleapis.com/auth/siteverification",
-        ],
-        "service_name": "siteVerification",
-        "version": "v1",
+    "scopes": [
+        "https://www.googleapis.com/auth/youtube",
+        "https://www.googleapis.com/auth/siteverification",
+        "https://www.googleapis.com/auth/admin.directory.domain",
+        "https://www.googleapis.com/auth/admin.directory.group.member",
+        "https://www.googleapis.com/auth/admin.directory.group",
+        "https://www.googleapis.com/auth/admin.directory.user",
+        "https://www.googleapis.com/auth/admin.directory.user.alias",
+    ],
+    "services": {
+        "youtube": {
+            "service_name": "youtube",
+            "version": "v3",
+        },
+        "workspace": {
+            "service_name": "admin",
+            "version": "directory_v1",
+        },
+        "site_verification": {
+            "service_name": "siteVerification",
+            "version": "v1",
+        },
     },
 }
 
 
 def get_credentials(api_name, client_secrets_file):
     flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(
-        client_secrets_file, APIS[api_name]["scopes"]
+        client_secrets_file, APIS["scopes"]
     )
     credentials = flow.run_local_server()
 
@@ -109,7 +109,7 @@ def load_credentials(
                     token_uri=creds_dict["token_uri"],
                     client_id=creds_dict["client_id"],
                     client_secret=creds_dict["client_secret"],
-                    scopes=APIS[api_name]["scopes"],
+                    scopes=APIS["scopes"],
                 )
             else:
                 credentials = get_and_update_credentials(
@@ -137,7 +137,7 @@ def get_client(name, api_name, client_secrets_filename=CLIENT_SECRETS_FILE):
     )
 
     return googleapiclient.discovery.build(
-        APIS[api_name]["service_name"],
-        APIS[api_name]["version"],
+        APIS["services"][api_name]["service_name"],
+        APIS["services"][api_name]["version"],
         credentials=creds,
     )
